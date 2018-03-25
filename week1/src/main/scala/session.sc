@@ -17,7 +17,6 @@ object session {
     def improveGuess(guess: Double): Double =
       guess + ((x / guess) - guess) / 2
 
-    ,
     sqrtIter(1)
   }
 
