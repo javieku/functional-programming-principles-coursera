@@ -1,6 +1,7 @@
 package patmat
 
 import common._
+import patmat.Huffman.CodeTable
 
 /**
   * Assignment 4: Huffman coding
@@ -163,15 +164,18 @@ object Huffman {
     * This function decodes the bit sequence `bits` using the code tree `tree` and returns
     * the resulting list of characters.
     */
-  def decode(tree: CodeTree, bits: List[Bit]): List[Char] = tree match {
-    case Leaf(char, _) => char :: Nil
-    case Fork(left, right, _, _) =>
-      if (bits.head == 0)
-        decode(left, bits.tail)
-      else
-        decode(right, bits.tail)
-  }
+  def decode(root: CodeTree, bits: List[Bit]): List[Char] = {
+    def traverse(tree: CodeTree, bits: List[Bit]): List[Char] = {
+      tree match {
+        case Leaf(char, _) if bits.isEmpty => List(char)
+        case Leaf(char, _) => char :: traverse(root, bits)
+        case Fork(left, _, _, _) if bits.head == 0 => traverse(left, bits.tail)
+        case Fork(_, right, _, _) if bits.head == 1 => traverse(right, bits.tail)
+      }
+    }
 
+    traverse(root, bits)
+  }
 
   /**
     * A Huffman coding tree for the French language.
@@ -198,17 +202,36 @@ object Huffman {
     * This function encodes `text` using the code tree `tree`
     * into a sequence of bits.
     */
-  def encode(tree: CodeTree)(text: List[Char]): List[Bit] = ???
+  def encode(root: CodeTree)(fullText: List[Char]): List[Bit] = {
+
+    def traverse(tree: CodeTree, char: Char, acc: List[Bit]): List[Bit] = {
+      tree match {
+        case Leaf(_, _) => acc
+        case Fork(left, _, _, _) if chars(left).contains(char) => traverse(left, char, acc :+ 0)
+        case Fork(_, right, _, _) if chars(right).contains(char) => traverse(right, char, acc :+ 1)
+      }
+    }
+
+    def loop(tree: CodeTree, text: List[Char], acc: List[Bit]): List[Bit] = {
+      text match {
+        case Nil => acc
+        case x :: xs => loop(tree, xs, traverse(tree, x, acc ::: List[Bit]()))
+      }
+    }
+
+    loop(root, fullText, List[Bit]())
+  }
 
   // Part 4b: Encoding using code table
 
   type CodeTable = List[(Char, List[Bit])]
+  type Code = (Char, List[Bit])
 
   /**
     * This function returns the bit sequence that represents the character `char` in
     * the code table `table`.
     */
-  def codeBits(table: CodeTable)(char: Char): List[Bit] = ???
+  def codeBits(table: CodeTable)(char: Char): List[Bit] = table.find(c => c._1 == char).get._2
 
   /**
     * Given a code tree, create a code table which contains, for every character in the
@@ -218,14 +241,20 @@ object Huffman {
     * a valid code tree that can be represented as a code table. Using the code tables of the
     * sub-trees, think of how to build the code table for the entire tree.
     */
-  def convert(tree: CodeTree): CodeTable = ???
+  def convert(tree: CodeTree): CodeTable = tree match {
+    case Leaf(c, _) => (c, List[Bit]()) :: Nil
+    case Fork(left, right, _, _) => mergeCodeTables(convert(left), convert(right))
+  }
 
   /**
     * This function takes two code tables and merges them into one. Depending on how you
     * use it in the `convert` method above, this merge method might also do some transformations
     * on the two parameter code tables.
     */
-  def mergeCodeTables(a: CodeTable, b: CodeTable): CodeTable = ???
+  def mergeCodeTables(a: CodeTable, b: CodeTable): CodeTable = {
+    def prepend(b: Bit)(code: Code): Code = (code._1, b :: code._2)
+    a.map(prepend(0)) ::: b.map(prepend(1))
+  }
 
   /**
     * This function encodes `text` according to the code tree `tree`.
@@ -233,5 +262,15 @@ object Huffman {
     * To speed up the encoding process, it first converts the code tree to a code table
     * and then uses it to perform the actual encoding.
     */
-  def quickEncode(tree: CodeTree)(text: List[Char]): List[Bit] = ???
+  def quickEncode(root: CodeTree)(fullText: List[Char]): List[Bit] = {
+
+    def loop(tree: CodeTree, text: List[Char], acc: List[Bit]): List[Bit] = {
+      text match {
+        case Nil => acc
+        case x :: xs => codeBits(convert(tree))(x) ::: quickEncode(tree)(xs)
+      }
+    }
+
+    loop(root, fullText, List[Bit]())
+  }
 }
