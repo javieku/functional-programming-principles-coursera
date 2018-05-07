@@ -37,7 +37,7 @@ object Anagrams {
   def wordOccurrences(w: Word): Occurrences = w.toLowerCase.groupBy(_.toChar).map { case (ch, str) => (ch, str.length) }.toList.sorted
 
   /** Converts a sentence into its character occurrence list. */
-  def sentenceOccurrences(s: Sentence): Occurrences = s.flatMap(word => wordOccurrences(word))
+  def sentenceOccurrences(s: Sentence): Occurrences = wordOccurrences((s foldLeft "")(_+_))
 
   /** The `dictionaryByOccurrences` is a `Map` from different occurrences to a sequence of all
     * the words that have that occurrence count.
@@ -119,17 +119,16 @@ object Anagrams {
       val result = occs.filter { case (c, _) => c != char }
 
       val reducedPair = occs.find { case (c, _) => c == char } match {
-        case Some((c, t)) => (c, t - times)
-        case None => (char, times)
+        case Some((c, t)) => (c, times - t )
+        case None => pair
       }
-      if (reducedPair._2 == 0)
+      if (reducedPair._2 <= 0)
         result
       else
         reducedPair :: result
     }
 
     (x foldLeft y) (subtractAux).sorted
-
   }
 
   /** Returns a list of all anagram sentences of the given sentence.
@@ -186,5 +185,4 @@ object Anagrams {
 
     subSentence(sentenceOccurrences(sentence))
   }
-
 }
