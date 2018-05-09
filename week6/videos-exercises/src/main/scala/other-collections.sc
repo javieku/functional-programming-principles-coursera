@@ -1,9 +1,8 @@
 object session {
-  def mapFun[T, U](xs: List[T], f: T => U): List[U] =
-    (xs foldRight List[U]()) (f(_) :: _)
+  def isPrime(n: Int): Boolean = n % 1 == 0 && n % n == 0 &&
+    (2 until n).forall(m => (n % m) != 0)
 
-  def lengthFun[T](xs: List[T]): Int =
-    (xs foldRight 0) ((x, y) => y + 1 )
-
-  lengthFun(List(1,2,3))
+  isPrime(17)
+  isPrime(30)
+  isPrime(4)
 }
